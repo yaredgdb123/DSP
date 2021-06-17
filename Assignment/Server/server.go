@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	Addrs_flag = [5]bool{
+	addressFlag = []bool{
 		false,
 	}
 
-	Addrs = [5]string{
+	adress = []string{
 		"169.254.6.85",
 	}
 
-	dial_conns  = make(map[string]net.Conn)
+	dialConns   = make(map[string]net.Conn)
 	IP2Username = make(map[string]string)
 	pNumber     = 0
 	localStamp  []int
@@ -43,36 +43,38 @@ func getAddress() string {
 	return return_ip
 }
 
-func connectToServers(port string, n int) {
-	ip_server := getAddress()
-	fmt.Println("The Local IP is: " + ip_server)
+func contactServers(port string, n int) {
+	ipServer := getAddress()
+	fmt.Println("The Local IP is: " + ipServer)
 	count := 0
 	for {
-		for index, ip_value := range Addrs {
-			if Addrs_flag[index] == true {
+		for index, ipValue := range adress {
+			if addressFlag[index] == true {
 				continue
 			}
-			if ip_value == ip_server {
+
+			//this doesn't always work cause getServerAdress() might not send the right IP
+			if ipValue == ipServer {
 				continue
 			}
-			dial_addr := ip_value + ":" + port
-			dial_conn, err := net.Dial("tcp", dial_addr)
+			dialAddress := ipValue + ":" + port
+			dialConn, err := net.Dial("tcp", dialAddress)
 			if err == nil {
-				Addrs_flag[index] = true
+				addressFlag[index] = true
 				count = count + 1
-				dial_conns[dial_conn.RemoteAddr().String()] = dial_conn
-				go Handler(dial_conn, &dial_conns, n)
-				fmt.Println(ip_server + " connecting to IP address: " + dial_addr + "--successful")
+				dialConns[dialConn.RemoteAddr().String()] = dialConn
+				go Handler(dialConn, &dialConns, n)
+				fmt.Println(ipServer + " connecting to IP address: " + dialAddress + "--successful")
 			}
 		}
 		if count == n-1 {
-			for i, val := range Addrs_flag {
-				if Addrs[i] == ip_server {
+			for i, val := range addressFlag {
+				if adress[i] == ipServer {
 					break
 				}
 
 				if val {
-					fmt.Println(Addrs[i])
+					fmt.Println(adress[i])
 					pNumber = pNumber + 1
 				}
 			}
@@ -84,27 +86,28 @@ func connectToServers(port string, n int) {
 			break
 		}
 	}
-	fmt.Println(ip_server + " connecting to ALL IP adresses" + "--successful")
-	fmt.Println("======================")
-	fmt.Println("The chat room is Live!")
-	fmt.Println("======================")
+	fmt.Println(ipServer + " connecting to ALL IP adresses" + "--successful")
+	fmt.Println("===================================")
+	fmt.Println("======The chat room is Live!=======")
+	fmt.Println("===================================")
 
 }
 
 func StartServer(port string, username string, n int) {
-	go connectToServers(port, n)
+	go contactServers(port, n)
 	host := ":" + port
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", host)
+	tcpAddress, err := net.ResolveTCPAddr("tcp4", host)
 	if err != nil {
-		fmt.Println("Address was not resolved")
+		fmt.Println("adress was not resolved")
 		return
 	}
-	listener, err := net.ListenTCP("tcp", tcpAddr)
+	listener, err := net.ListenTCP("tcp", tcpAddress)
 	if err != nil {
-		fmt.Println("Listener was unable to listen on port " + port + ": try a different port or close the conflicting instance")
+		fmt.Println("Listener was unable to listen on port:" + port + " try a different port or close the conflicting instance")
 		return
 	}
 	conns := make(map[string]net.Conn)
+
 	go broadcastUsername(&conns, username, n-1)
 	go broadcastMessages(&conns, username)
 
@@ -149,14 +152,14 @@ func Handler(conn net.Conn, conns *map[string]net.Conn, n int) {
 	}
 	recvStr := string(buf[0:length])
 	fmt.Println(recvStr)
-	ip_a := strings.Split(conn.RemoteAddr().String(), ":")[0]
-	IP2Username[ip_a] = recvStr
+	ipConn := strings.Split(conn.RemoteAddr().String(), ":")[0]
+	IP2Username[ipConn] = recvStr
 	for {
 		length, err := conn.Read(buf)
 		if err != nil {
-			ip_left := strings.Split(conn.RemoteAddr().String(), ":")[0]
-			username_left := IP2Username[ip_left]
-			fmt.Println(username_left + " has left the chat")
+			ipDisconnected := ipConn
+			usernameDisconn := IP2Username[ipDisconnected]
+			fmt.Println(usernameDisconn + " has left the chat")
 			delete(*conns, conn.RemoteAddr().String())
 			conn.Close()
 			break
@@ -170,14 +173,14 @@ func releaseHoldback(holdback map[string]string, stayLong map[string]string) {
 	for {
 		time.Sleep(1 * time.Second)
 		layout := "2000-01-01 20:00:00"
-		currentT := time.Now()
+		currentTime := time.Now()
 		for key, value := range holdback {
-			whenEntered, err := time.Parse(layout, stayLong[key])
+			parsedTime, err := time.Parse(layout, stayLong[key])
 			if err != nil {
 				fmt.Println("cannot parse time")
 			}
-			diff := currentT.Sub(whenEntered)
-			dura := int64(diff / time.Second)
+			timeDiff := currentTime.Sub(parsedTime)
+			dura := int64(timeDiff / time.Second)
 			if dura >= 2 {
 				fmt.Println("#stay too long")
 				_, ok1 := stayLong[key]
@@ -198,10 +201,10 @@ func releaseHoldback(holdback map[string]string, stayLong map[string]string) {
 	}
 }
 
-func broadcastUsername(conns *map[string]net.Conn, username string, ip_num int) {
+func broadcastUsername(conns *map[string]net.Conn, username string, ipNum int) {
 	for {
 		msg := username
-		if len(*conns) == ip_num {
+		if len(*conns) == ipNum {
 			for key, conn := range *conns {
 				_, err := conn.Write([]byte(msg))
 				if err != nil {

@@ -37,7 +37,7 @@ func handleMsg(msg string, stamp []int, n int, holdback map[string]string, stayL
 		keystring := TimestampTostring(newstamp)
 		holdback[keystring] = realMsg
 
-		layout := "2006-01-02 15:04:05"
+		layout := "2000-15-01 15:00:00"
 		currentTime := time.Now().Format(layout)
 		stayLong[keystring] = currentTime
 
@@ -45,13 +45,13 @@ func handleMsg(msg string, stamp []int, n int, holdback map[string]string, stayL
 
 }
 
-func UpdateHoldback(n int, local_stamp []int) {
+func UpdateHoldback(n int, localStamp []int) {
 	myFlag := false
 	for key, value := range holdback {
-		tmp := stringToTimestamp(key)
-		if checkStamp(tmp, local_stamp, n) {
-			whereUpdate := tmp[n]
-			local_stamp[whereUpdate] = tmp[whereUpdate]
+		tempStamp := stringToTimestamp(key)
+		if checkStamp(tempStamp, localStamp, n) {
+			whereUpdate := tempStamp[n]
+			localStamp[whereUpdate] = tempStamp[whereUpdate]
 			myFlag = true
 
 			_, ok1 := holdback[key]
@@ -68,7 +68,7 @@ func UpdateHoldback(n int, local_stamp []int) {
 		}
 	}
 	if myFlag {
-		UpdateHoldback(n, local_stamp)
+		UpdateHoldback(n, localStamp)
 	}
 
 }
